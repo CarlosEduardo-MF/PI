@@ -1,7 +1,3 @@
-// CadastroScreen.js
-// Tela de cadastro. No topo tem um seletor "Quero doar" / "Preciso de ajuda".
-// Dependendo da opção escolhida, mostra o formulário de Doadora ou de Beneficiária.
-
 import { useState } from "react";
 import {
   View,
@@ -15,9 +11,9 @@ import Campo from "../components/Campo";
 import Seletor from "../components/Seletor";
 import Botao from "../components/Botao";
 import { avisar } from "../utils/avisar";
+import { cadastrarDoadora, cadastrarBeneficiaria, login } from "../services/api";
 import { cores } from "../theme";
 
-// Listas de opções dos seletores
 const CIDADES = [
   "Porto Alegre",
   "Canoas",
@@ -43,32 +39,49 @@ const NECESSIDADES = [
 ];
 
 export default function CadastroScreen({ onEntrar }) {
-  // perfil controla qual formulário aparece: 'doadora' ou 'beneficiaria'
   const [perfil, setPerfil] = useState("doadora");
 
-  // Campos do formulário
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cidade, setCidade] = useState("");
   const [frequencia, setFrequencia] = useState("");
   const [necessidade, setNecessidade] = useState("");
+  const [salvando, setSalvando] = useState(false);
 
   const ehDoadora = perfil === "doadora";
 
-  function cadastrar() {
-    // Validação simples: só verifica se o nome foi preenchido.
+  async function cadastrar() {
     if (!nome) {
       avisar("Atenção", "Por favor, preencha o seu nome completo.");
       return;
     }
-    avisar("Cadastro concluído!", `Seja bem-vinda, ${nome}!`);
-    onEntrar(); //entra no app
+    if (!email || !senha) {
+      avisar("Atenção", "Preencha o e-mail e a senha para criar seu acesso.");
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      if (ehDoadora) {
+        await cadastrarDoadora({ nome, email, telefone, cidade, frequencia, senha });
+      } else {
+        await cadastrarBeneficiaria({ nome, email, telefone, cidade, necessidade, senha });
+      }
+
+      const resposta = await login(email, senha);
+      avisar("Cadastro concluído!", `Seja bem-vinda, ${nome}!`);
+      onEntrar(resposta.usuario);
+    } catch (erro) {
+      avisar("Não foi possível cadastrar", erro.message);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
     <ScrollView style={estilos.tela} contentContainerStyle={estilos.conteudo}>
-      {/* Seletor Doar / Preciso de ajuda */}
       <View style={estilos.abas}>
         <TouchableOpacity
           style={[estilos.aba, ehDoadora && estilos.abaAtiva]}
@@ -99,7 +112,6 @@ export default function CadastroScreen({ onEntrar }) {
         </TouchableOpacity>
       </View>
 
-      {/* Título e descrição mudam conforme o perfil */}
       <Text style={estilos.titulo}>
         {ehDoadora ? "Cadastro de Doadora" : "Cadastro de Beneficiária"}
       </Text>
@@ -109,7 +121,6 @@ export default function CadastroScreen({ onEntrar }) {
           : "Você não está sozinha. Preencha os dados abaixo e conectaremos você com uma doadora na sua região."}
       </Text>
 
-      {/* Campos iguais para os dois perfis */}
       <Campo
         rotulo="Nome completo"
         valor={nome}
@@ -122,6 +133,13 @@ export default function CadastroScreen({ onEntrar }) {
         aoMudar={setEmail}
         placeholder="fulano@gmail.com"
         tipoTeclado="email-address"
+      />
+      <Campo
+        rotulo="Senha"
+        valor={senha}
+        aoMudar={setSenha}
+        placeholder="Crie uma senha"
+        senha
       />
       <Campo
         rotulo="Telefone"
@@ -138,7 +156,6 @@ export default function CadastroScreen({ onEntrar }) {
         placeholder="Selecione sua cidade"
       />
 
-      {/* O último campo muda: doadora -> frequência | beneficiária -> tipo de necessidade */}
       {ehDoadora ? (
         <Seletor
           rotulo="Frequência de doação"
@@ -157,7 +174,11 @@ export default function CadastroScreen({ onEntrar }) {
         />
       )}
 
-      <Botao titulo="Cadastrar" onPress={cadastrar} estilo={{ marginTop: 8 }} />
+      <Botao
+        titulo={salvando ? "Cadastrando..." : "Cadastrar"}
+        onPress={cadastrar}
+        estilo={{ marginTop: 8 }}
+      />
     </ScrollView>
   );
 }

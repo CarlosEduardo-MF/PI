@@ -1,8 +1,3 @@
-// Seletor.js
-// "Dropdown" simples para escolher uma opção de uma lista
-// (ex: Cidade, Frequência de doação, Tipo de necessidade).
-// Ao tocar, abre uma janelinha (Modal) com as opções.
-
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
 import { cores } from '../theme';
@@ -14,7 +9,6 @@ export default function Seletor({ rotulo, valor, opcoes, aoEscolher, placeholder
     <View style={estilos.grupo}>
       <Text style={estilos.rotulo}>{rotulo}</Text>
 
-      {/* Caixa que mostra a opção escolhida (ou o placeholder) */}
       <TouchableOpacity style={estilos.caixa} onPress={() => setAberto(true)}>
         <Text style={[estilos.textoCaixa, !valor && estilos.placeholder]}>
           {valor || placeholder}
@@ -22,7 +16,6 @@ export default function Seletor({ rotulo, valor, opcoes, aoEscolher, placeholder
         <Text style={estilos.seta}>⌄</Text>
       </TouchableOpacity>
 
-      {/* Janela com a lista de opções */}
       <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
         <TouchableOpacity style={estilos.fundo} activeOpacity={1} onPress={() => setAberto(false)}>
           <View style={estilos.janela}>

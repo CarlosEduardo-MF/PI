@@ -1,8 +1,3 @@
-// LoginScreen.js
-// Tela de entrada do app. Tem fundo degradê rosa, campos de e-mail e senha,
-// link "Esqueceu a senha?", botões para entrar como doadora ou beneficiária
-// e um link para a tela de Cadastro.
-
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,18 +5,28 @@ import { Ionicons } from '@expo/vector-icons';
 import Campo from '../components/Campo';
 import Botao from '../components/Botao';
 import { avisar } from '../utils/avisar';
+import { login } from '../services/api';
 import { cores } from '../theme';
 
-// onEntrar e navigation chegam pelo App.js / React Navigation
 export default function LoginScreen({ onEntrar, navigation }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [entrando, setEntrando] = useState(false);
 
-  function entrar(tipo) {
-    // Por enquanto é só front-end: não checa senha de verdade,
-    // apenas avisa e entra no app.
-    avisar('Bem-vinda!', `Você entrou como ${tipo}.`);
-    onEntrar();
+  async function entrar() {
+    if (!email || !senha) {
+      avisar('Atenção', 'Preencha o e-mail e a senha.');
+      return;
+    }
+    setEntrando(true);
+    try {
+      const resposta = await login(email, senha);
+      onEntrar(resposta.usuario);
+    } catch (erro) {
+      avisar('Não foi possível entrar', erro.message);
+    } finally {
+      setEntrando(false);
+    }
   }
 
   function esqueceuSenha() {
@@ -31,13 +36,11 @@ export default function LoginScreen({ onEntrar, navigation }) {
   return (
     <LinearGradient colors={['#E6007E', '#9B0E5F']} style={estilos.fundo}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={estilos.centro}>
-        {/* Logo */}
         <View style={estilos.logo}>
           <Ionicons name="heart" size={28} color={cores.branco} />
           <Text style={estilos.logoTexto}>Connected Woman</Text>
         </View>
 
-        {/* Cartão branco com o formulário */}
         <View style={estilos.cartao}>
           <Text style={estilos.titulo}>Login</Text>
 
@@ -56,26 +59,23 @@ export default function LoginScreen({ onEntrar, navigation }) {
             senha
           />
 
-          {/* Link de esqueceu a senha */}
           <TouchableOpacity onPress={esqueceuSenha}>
             <Text style={estilos.esqueceu}>Esqueceu a senha?</Text>
           </TouchableOpacity>
 
-          {/* Dois botões lado a lado */}
           <View style={estilos.linhaBotoes}>
             <Botao
-              titulo="Entrar como doadora"
-              onPress={() => entrar('doadora')}
+              titulo={entrando ? 'Entrando...' : 'Entrar como doadora'}
+              onPress={entrar}
               estilo={estilos.botaoMetade}
             />
             <Botao
-              titulo="Entrar como beneficiária"
-              onPress={() => entrar('beneficiária')}
+              titulo={entrando ? 'Entrando...' : 'Entrar como beneficiária'}
+              onPress={entrar}
               estilo={estilos.botaoMetade}
             />
           </View>
 
-          {/* Link para a tela de cadastro */}
           <TouchableOpacity onPress={() => navigation.navigate('Cadastro')} style={estilos.linkCadastro}>
             <Text style={estilos.textoCadastro}>
               Não tem conta? <Text style={estilos.cadastreSe}>Cadastre-se</Text>

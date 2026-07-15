@@ -1,15 +1,11 @@
--- ============================================================
--- Banco de dados do projeto Connected Woman
--- Para criar tudo: abra o MySQL e rode este arquivo inteiro.
---   (no terminal: mysql -u root -p < database.sql)
--- ============================================================
+-- banco connected woman
 
 CREATE DATABASE IF NOT EXISTS connected_woman
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE connected_woman;
 
--- ---------- Tabela de login (usuárias) ----------
+-- usuario
 CREATE TABLE IF NOT EXISTS usuario (
   id_usuario INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(150) NOT NULL UNIQUE,
@@ -17,7 +13,7 @@ CREATE TABLE IF NOT EXISTS usuario (
   tipo ENUM('doadora', 'beneficiaria', 'admin') NOT NULL
 );
 
--- ---------- Doadoras ----------
+-- doadoras
 CREATE TABLE IF NOT EXISTS doadora (
   id_doadora INT AUTO_INCREMENT PRIMARY KEY,
   nome_doadora VARCHAR(150) NOT NULL,
@@ -27,7 +23,7 @@ CREATE TABLE IF NOT EXISTS doadora (
   frequencia_doacao_doadora VARCHAR(50)
 );
 
--- ---------- Beneficiárias ----------
+-- beneficiarias
 CREATE TABLE IF NOT EXISTS beneficiaria (
   id_beneficiaria INT AUTO_INCREMENT PRIMARY KEY,
   nome_beneficiaria VARCHAR(150) NOT NULL,
@@ -37,7 +33,7 @@ CREATE TABLE IF NOT EXISTS beneficiaria (
   tipo_necessidade_beneficiaria VARCHAR(100)
 );
 
--- ---------- Doações (liga doadora e beneficiária) ----------
+-- doacoes
 CREATE TABLE IF NOT EXISTS doacao (
   id_doacao INT AUTO_INCREMENT PRIMARY KEY,
   id_doadora INT,
@@ -48,7 +44,7 @@ CREATE TABLE IF NOT EXISTS doacao (
   FOREIGN KEY (id_beneficiaria) REFERENCES beneficiaria(id_beneficiaria)
 );
 
--- ---------- Pontos de coleta (tela Pontos de Coleta) ----------
+-- pontos de coleta
 CREATE TABLE IF NOT EXISTS ponto_coleta (
   id_ponto INT AUTO_INCREMENT PRIMARY KEY,
   nome VARCHAR(150) NOT NULL,
@@ -58,16 +54,14 @@ CREATE TABLE IF NOT EXISTS ponto_coleta (
   aberto TINYINT(1) DEFAULT 1
 );
 
--- ---------- FAQ (tela Educação) ----------
+-- faq
 CREATE TABLE IF NOT EXISTS faq (
   id_faq INT AUTO_INCREMENT PRIMARY KEY,
   pergunta VARCHAR(255) NOT NULL,
   resposta TEXT NOT NULL
 );
 
--- ============================================================
--- DADOS DE EXEMPLO (para já ter algo para testar)
--- ============================================================
+-- dados de exemplo
 
 INSERT INTO usuario (email, senha, tipo) VALUES
 ('admin@connectedwoman.org', '123456', 'admin'),

@@ -1,45 +1,21 @@
-// server.js
-// Servidor (API) do projeto Connected Woman.
-// Tecnologias: Node.js + Express + MySQL (queries SQL puras, sem ORM).
-//
-// Cada rota faz uma operação do app: login, cadastro, doações, pontos de coleta, etc.
-// As queries usam "?" para os valores (isso protege contra SQL Injection).
 
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const pool = require("./db"); // nossa conexão com o MySQL
+const pool = require("./db");
 
 const app = express();
-app.use(cors()); // permite que o app (frontend) acesse esta API
-app.use(express.json()); // permite ler JSON enviado no corpo das requisições
+app.use(cors());
+app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// ============================================================
-// ROTAS DE TESTE
-// ============================================================
 
-// Página inicial da API (não usa banco)
 app.get("/", (req, res) => {
   res.json({ ok: true, mensagem: "API Connected Woman rodando!" });
 });
 
-// Testa se a conexão com o banco está funcionando
-app.get("/health", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
-    res.json({ ok: true, banco: "conectado" });
-  } catch (erro) {
-    res.status(500).json({ ok: false, banco: "erro", detalhe: erro.message });
-  }
-});
 
-// ============================================================
-// LOGIN
-// ============================================================
-
-// POST /login  -> body: { email, senha }
 app.post("/login", async (req, res) => {
   try {
     const { email, senha } = req.body;
@@ -56,22 +32,15 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ============================================================
-// CADASTRO (cria usuária de login + registro na tabela certa)
-// ============================================================
 
-// POST /cadastro/doadora -> body: { nome, email, telefone, cidade, frequencia, senha }
 app.post("/cadastro/doadora", async (req, res) => {
   try {
     const { nome, email, telefone, cidade, frequencia, senha } = req.body;
 
-    // 1) cria a doadora
     const [resultado] = await pool.query(
       "INSERT INTO doadora (nome_doadora, email_doadora, telefone_doadora, cidade_doadora, frequencia_doacao_doadora) VALUES (?, ?, ?, ?, ?)",
       [nome, email, telefone, cidade, frequencia]
     );
-
-    // 2) cria o login (se enviou senha)
     if (email && senha) {
       await pool.query(
         "INSERT INTO usuario (email, senha, tipo) VALUES (?, ?, 'doadora')",
@@ -85,7 +54,6 @@ app.post("/cadastro/doadora", async (req, res) => {
   }
 });
 
-// POST /cadastro/beneficiaria -> body: { nome, email, telefone, cidade, necessidade, senha }
 app.post("/cadastro/beneficiaria", async (req, res) => {
   try {
     const { nome, email, telefone, cidade, necessidade, senha } = req.body;
@@ -107,10 +75,6 @@ app.post("/cadastro/beneficiaria", async (req, res) => {
     res.status(500).json({ ok: false, erro: erro.message });
   }
 });
-
-// ============================================================
-// DOADORAS (listar, ver, editar, apagar)
-// ============================================================
 
 app.get("/doadoras", async (req, res) => {
   try {
@@ -153,10 +117,6 @@ app.delete("/doadoras/:id", async (req, res) => {
   }
 });
 
-// ============================================================
-// BENEFICIÁRIAS (listar, ver, editar, apagar)
-// ============================================================
-
 app.get("/beneficiarias", async (req, res) => {
   try {
     const [linhas] = await pool.query("SELECT * FROM beneficiaria ORDER BY id_beneficiaria DESC");
@@ -198,11 +158,6 @@ app.delete("/beneficiarias/:id", async (req, res) => {
   }
 });
 
-// ============================================================
-// DOAÇÕES (pareamento doadora -> beneficiária)
-// ============================================================
-
-// Lista as doações já com os nomes (usando JOIN)
 app.get("/doacoes", async (req, res) => {
   try {
     const [linhas] = await pool.query(`
@@ -219,7 +174,7 @@ app.get("/doacoes", async (req, res) => {
   }
 });
 
-// Histórico de doações de uma doadora
+
 app.get("/doacoes/doadora/:id", async (req, res) => {
   try {
     const [linhas] = await pool.query(
@@ -232,7 +187,6 @@ app.get("/doacoes/doadora/:id", async (req, res) => {
   }
 });
 
-// Registra uma nova doação
 app.post("/doacoes", async (req, res) => {
   try {
     const { id_doadora, id_beneficiaria, data_doacao, status } = req.body;
@@ -246,7 +200,7 @@ app.post("/doacoes", async (req, res) => {
   }
 });
 
-// Atualiza o status de uma doação (ex: pendente -> concluida)
+
 app.put("/doacoes/:id", async (req, res) => {
   try {
     const { status } = req.body;
@@ -266,9 +220,7 @@ app.delete("/doacoes/:id", async (req, res) => {
   }
 });
 
-// ============================================================
-// PONTOS DE COLETA (tela Pontos de Coleta)
-// ============================================================
+
 
 app.get("/pontos", async (req, res) => {
   try {
@@ -301,9 +253,7 @@ app.delete("/pontos/:id", async (req, res) => {
   }
 });
 
-// ============================================================
-// FAQ (tela Educação)
-// ============================================================
+
 
 app.get("/faqs", async (req, res) => {
   try {
@@ -327,9 +277,6 @@ app.post("/faqs", async (req, res) => {
   }
 });
 
-// ============================================================
-// RELATÓRIOS (contagens para a administradora)
-// ============================================================
 
 app.get("/relatorios", async (req, res) => {
   try {
@@ -350,9 +297,124 @@ app.get("/relatorios", async (req, res) => {
   }
 });
 
-// ============================================================
-// INICIA O SERVIDOR
-// ============================================================
+
+// perfil
+app.get("/perfil/:tipo/:email", async (req, res) => {
+  try {
+    const { tipo, email } = req.params;
+    if (tipo === "doadora") {
+      const [linhas] = await pool.query(
+        "SELECT * FROM doadora WHERE email_doadora = ?",
+        [email]
+      );
+      return res.json(linhas[0] || null);
+    }
+    if (tipo === "beneficiaria") {
+      const [linhas] = await pool.query(
+        "SELECT * FROM beneficiaria WHERE email_beneficiaria = ?",
+        [email]
+      );
+      return res.json(linhas[0] || null);
+    }
+    res.json(null);
+  } catch (erro) {
+    res.status(500).json({ ok: false, erro: erro.message });
+  }
+});
+
+app.put("/perfil/:tipo/:email", async (req, res) => {
+  try {
+    const { tipo, email } = req.params;
+    const { nome, telefone, cidade, frequencia, necessidade } = req.body;
+
+    if (tipo === "doadora") {
+      await pool.query(
+        "UPDATE doadora SET nome_doadora = ?, telefone_doadora = ?, cidade_doadora = ?, frequencia_doacao_doadora = ? WHERE email_doadora = ?",
+        [nome, telefone, cidade, frequencia, email]
+      );
+    } else if (tipo === "beneficiaria") {
+      await pool.query(
+        "UPDATE beneficiaria SET nome_beneficiaria = ?, telefone_beneficiaria = ?, cidade_beneficiaria = ?, tipo_necessidade_beneficiaria = ? WHERE email_beneficiaria = ?",
+        [nome, telefone, cidade, necessidade, email]
+      );
+    } else {
+      return res.status(400).json({ ok: false, mensagem: "Tipo de perfil inválido." });
+    }
+
+    res.json({ ok: true, mensagem: "Perfil atualizado." });
+  } catch (erro) {
+    res.status(500).json({ ok: false, erro: erro.message });
+  }
+});
+
+app.put("/usuario/:id/senha", async (req, res) => {
+  try {
+    const { senhaAtual, novaSenha } = req.body;
+    if (!novaSenha) {
+      return res.status(400).json({ ok: false, mensagem: "Informe a nova senha." });
+    }
+
+    const [linhas] = await pool.query(
+      "SELECT senha FROM usuario WHERE id_usuario = ?",
+      [req.params.id]
+    );
+    if (linhas.length === 0) {
+      return res.status(404).json({ ok: false, mensagem: "Usuária não encontrada." });
+    }
+    if (linhas[0].senha !== senhaAtual) {
+      return res.status(401).json({ ok: false, mensagem: "Senha atual incorreta." });
+    }
+
+    await pool.query("UPDATE usuario SET senha = ? WHERE id_usuario = ?", [
+      novaSenha,
+      req.params.id,
+    ]);
+    res.json({ ok: true, mensagem: "Senha alterada." });
+  } catch (erro) {
+    res.status(500).json({ ok: false, erro: erro.message });
+  }
+});
+
+app.delete("/usuario/:id", async (req, res) => {
+  try {
+    const [usuarios] = await pool.query(
+      "SELECT email, tipo FROM usuario WHERE id_usuario = ?",
+      [req.params.id]
+    );
+    if (usuarios.length === 0) {
+      return res.status(404).json({ ok: false, mensagem: "Usuária não encontrada." });
+    }
+    const { email, tipo } = usuarios[0];
+
+    if (tipo === "doadora") {
+      const [doadoras] = await pool.query(
+        "SELECT id_doadora FROM doadora WHERE email_doadora = ?",
+        [email]
+      );
+      for (const d of doadoras) {
+        await pool.query("DELETE FROM doacao WHERE id_doadora = ?", [d.id_doadora]);
+      }
+      await pool.query("DELETE FROM doadora WHERE email_doadora = ?", [email]);
+    } else if (tipo === "beneficiaria") {
+      const [beneficiarias] = await pool.query(
+        "SELECT id_beneficiaria FROM beneficiaria WHERE email_beneficiaria = ?",
+        [email]
+      );
+      for (const b of beneficiarias) {
+        await pool.query("DELETE FROM doacao WHERE id_beneficiaria = ?", [
+          b.id_beneficiaria,
+        ]);
+      }
+      await pool.query("DELETE FROM beneficiaria WHERE email_beneficiaria = ?", [email]);
+    }
+
+    await pool.query("DELETE FROM usuario WHERE id_usuario = ?", [req.params.id]);
+    res.json({ ok: true, mensagem: "Conta apagada." });
+  } catch (erro) {
+    res.status(500).json({ ok: false, erro: erro.message });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`API Connected Woman rodando em http://localhost:${PORT}`);

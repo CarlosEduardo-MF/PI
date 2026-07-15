@@ -1,11 +1,7 @@
-// ComoFuncionaScreen.js
-// Tela "Como Funciona" - mostra os 3 passos de uso da plataforma.
-
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { cores } from '../theme';
 
-// Os 3 passos. Cada um tem um ícone, título e descrição.
 const PASSOS = [
   {
     icone: 'person-add',
@@ -34,7 +30,6 @@ export default function ComoFuncionaScreen() {
 
       {PASSOS.map((passo, indice) => (
         <View key={passo.titulo} style={estilos.cartao}>
-          {/* Número do passo */}
           <View style={estilos.numeroCirculo}>
             <Text style={estilos.numero}>{indice + 1}</Text>
           </View>

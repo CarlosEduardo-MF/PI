@@ -1,11 +1,4 @@
-// App.js
-// Este é o arquivo principal. Ele controla a navegação do app:
-//
-//  - Se a usuária NÃO está logada  -> mostra as telas de Login e Cadastro.
-//  - Se a usuária ESTÁ logada      -> mostra o app com abas embaixo
-//                                     (Início, Sobre, Como Funciona, Pontos, Educação),
-//                                     um ícone de Perfil no topo (configurações da conta)
-//                                     e, dentro do Perfil, o botão de "Sair" (logout).
+//o que depois vai virar html
 
 import { useState } from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
@@ -29,7 +22,7 @@ const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// ---- Fluxo de quem NÃO está logada: Login e Cadastro ----
+// Login e Cadastro
 function FluxoLogin({ onEntrar }) {
   return (
     <AuthStack.Navigator>
@@ -50,7 +43,7 @@ function FluxoLogin({ onEntrar }) {
   );
 }
 
-// ---- Ícone de Perfil que aparece no topo (leva para a tela de Perfil) ----
+// ícone de perfil no topo
 function BotaoPerfil({ onPress }) {
   return (
     <TouchableOpacity onPress={onPress} style={estilos.perfilBtn}>
@@ -59,23 +52,19 @@ function BotaoPerfil({ onPress }) {
   );
 }
 
-// ---- As abas do app (Início, Sobre, etc.) ----
+// abas do app
 function Abas() {
   return (
     <Tab.Navigator
       screenOptions={({ route, navigation }) => ({
-        // Cor do topo (header)
         headerStyle: { backgroundColor: cores.rosa },
         headerTintColor: cores.branco,
         headerTitleStyle: { fontWeight: 'bold' },
-        // Ícone de perfil no canto direito do topo -> abre a tela de Perfil
         headerRight: () => <BotaoPerfil onPress={() => navigation.navigate('Perfil')} />,
-        // Cores da barra de abas
         tabBarActiveTintColor: cores.rosa,
         tabBarInactiveTintColor: '#B9A6AF',
         tabBarStyle: { height: 62, paddingBottom: 8, paddingTop: 6 },
         tabBarLabelStyle: { fontSize: 10 },
-        // Escolhe o ícone de cada aba pelo nome da rota
         tabBarIcon: ({ color, size }) => {
           const icones = {
             Início: 'home',
@@ -97,13 +86,11 @@ function Abas() {
   );
 }
 
-// ---- Fluxo de quem ESTÁ logada: as abas + a tela de Perfil por cima ----
-function FluxoApp({ onSair }) {
+// abas + tela de Perfil por cima
+function FluxoApp({ usuario, onSair }) {
   return (
     <AppStack.Navigator>
-      {/* As abas (sem header próprio do stack, pois as abas já têm o seu) */}
       <AppStack.Screen name="Abas" component={Abas} options={{ headerShown: false }} />
-      {/* A tela de Perfil abre por cima das abas */}
       <AppStack.Screen
         name="Perfil"
         options={{
@@ -113,25 +100,22 @@ function FluxoApp({ onSair }) {
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       >
-        {(props) => <PerfilScreen {...props} onSair={onSair} />}
+        {(props) => <PerfilScreen {...props} usuario={usuario} onSair={onSair} />}
       </AppStack.Screen>
     </AppStack.Navigator>
   );
 }
 
-// ---- App principal ----
 export default function App() {
-  // logado guarda se a usuária entrou ou não.
-  // Começa como false (mostra a tela de login).
-  const [logado, setLogado] = useState(false);
+  const [usuario, setUsuario] = useState(null);
 
   return (
     <NavigationContainer>
       <StatusBar style="light" />
-      {logado ? (
-        <FluxoApp onSair={() => setLogado(false)} />
+      {usuario ? (
+        <FluxoApp usuario={usuario} onSair={() => setUsuario(null)} />
       ) : (
-        <FluxoLogin onEntrar={() => setLogado(true)} />
+        <FluxoLogin onEntrar={setUsuario} />
       )}
     </NavigationContainer>
   );

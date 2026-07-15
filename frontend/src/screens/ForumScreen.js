@@ -1,9 +1,3 @@
-// ForumScreen.js
-// Tela "Fórum" - um espaço de ajuda/comunidade.
-// A usuária pode: escrever uma mensagem, curtir, e COMENTAR em cada post.
-// Por enquanto é só front-end: tudo fica guardado na tela enquanto o app
-// está aberto (não vai para um banco de dados ainda).
-
 import { useState } from 'react';
 import {
   View,
@@ -18,8 +12,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { cores } from '../theme';
 
-// Mensagens de exemplo (já aparecem quando abre a tela).
-// Cada post tem uma lista de "comentarios".
 const POSTS_INICIAIS = [
   {
     id: 1,
@@ -59,15 +51,14 @@ export default function ForumScreen() {
   const [posts, setPosts] = useState(POSTS_INICIAIS);
   const [texto, setTexto] = useState('');
 
-  // comentandoId = id do post cujo campo de comentário está aberto (só um por vez)
   const [comentandoId, setComentandoId] = useState(null);
   const [comentarioTexto, setComentarioTexto] = useState('');
 
   function publicar() {
     const limpo = texto.trim();
-    if (!limpo) return; // não publica vazio
+    if (!limpo) return;
     const novo = { id: Date.now(), autora: 'Você', texto: limpo, curtidas: 0, comentarios: [] };
-    setPosts([novo, ...posts]); // novo post no topo
+    setPosts([novo, ...posts]);
     setTexto('');
   }
 
@@ -75,13 +66,11 @@ export default function ForumScreen() {
     setPosts(posts.map((p) => (p.id === id ? { ...p, curtidas: p.curtidas + 1 } : p)));
   }
 
-  // Abre/fecha o campo de comentário de um post
   function alternarComentario(id) {
     setComentandoId(comentandoId === id ? null : id);
     setComentarioTexto('');
   }
 
-  // Adiciona um comentário ao post
   function comentar(postId) {
     const limpo = comentarioTexto.trim();
     if (!limpo) return;
@@ -91,7 +80,7 @@ export default function ForumScreen() {
         p.id === postId ? { ...p, comentarios: [...p.comentarios, novoComentario] } : p
       )
     );
-    setComentarioTexto(''); // limpa, mas mantém o campo aberto
+    setComentarioTexto('');
   }
 
   return (
@@ -105,7 +94,6 @@ export default function ForumScreen() {
           Um espaço seguro para compartilhar experiências, tirar dúvidas e apoiar outras mulheres.
         </Text>
 
-        {/* Caixa para escrever um novo post */}
         <View style={estilos.caixaNovo}>
           <TextInput
             style={estilos.input}
@@ -121,7 +109,6 @@ export default function ForumScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Lista de posts */}
         {posts.map((post) => (
           <View key={post.id} style={estilos.card}>
             <View style={estilos.cardTopo}>
@@ -133,7 +120,6 @@ export default function ForumScreen() {
 
             <Text style={estilos.texto}>{post.texto}</Text>
 
-            {/* Barra de ações: curtir e comentar */}
             <View style={estilos.acoes}>
               <TouchableOpacity style={estilos.acaoBtn} onPress={() => curtir(post.id)}>
                 <Ionicons name="heart" size={16} color={cores.rosa} />
@@ -146,7 +132,6 @@ export default function ForumScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Lista de comentários do post */}
             {post.comentarios.map((c) => (
               <View key={c.id} style={estilos.comentario}>
                 <Text style={estilos.comentarioAutora}>{c.autora}</Text>
@@ -154,7 +139,6 @@ export default function ForumScreen() {
               </View>
             ))}
 
-            {/* Campo para escrever um comentário (aparece ao tocar em comentar) */}
             {comentandoId === post.id && (
               <View style={estilos.caixaComentario}>
                 <TextInput
@@ -181,7 +165,6 @@ const estilos = StyleSheet.create({
   conteudo: { padding: 20 },
   titulo: { fontSize: 24, fontWeight: 'bold', color: cores.texto, marginBottom: 8 },
   intro: { fontSize: 15, color: cores.textoClaro, marginBottom: 20, lineHeight: 22 },
-  // Caixa de escrever post
   caixaNovo: {
     backgroundColor: cores.branco,
     borderRadius: 14,
@@ -209,7 +192,6 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 20,
   },
   btnPublicarTexto: { color: cores.branco, fontWeight: 'bold' },
-  // Cartão de cada post
   card: {
     backgroundColor: cores.branco,
     borderRadius: 14,
@@ -230,11 +212,9 @@ const estilos = StyleSheet.create({
   avatarLetra: { color: cores.branco, fontWeight: 'bold', fontSize: 16 },
   autora: { fontSize: 15, fontWeight: 'bold', color: cores.texto },
   texto: { fontSize: 14, color: cores.textoClaro, lineHeight: 21, marginBottom: 12 },
-  // Ações (curtir / comentar)
   acoes: { flexDirection: 'row', gap: 20 },
   acaoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   acaoTexto: { fontSize: 14, color: cores.rosa, fontWeight: '600' },
-  // Comentários
   comentario: {
     backgroundColor: cores.rosaClaro,
     borderRadius: 10,
@@ -245,7 +225,6 @@ const estilos = StyleSheet.create({
   },
   comentarioAutora: { fontSize: 13, fontWeight: 'bold', color: cores.texto, marginBottom: 2 },
   comentarioTexto: { fontSize: 13, color: cores.textoClaro, lineHeight: 19 },
-  // Caixa para escrever comentário
   caixaComentario: {
     flexDirection: 'row',
     alignItems: 'center',

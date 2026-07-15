@@ -1,8 +1,3 @@
-// Botao.js
-// Botão reutilizável. Tem dois estilos:
-//   tipo="cheio"    -> fundo rosa, texto branco (padrão)
-//   tipo="contorno" -> fundo branco, borda e texto rosa
-
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { cores } from '../theme';
 

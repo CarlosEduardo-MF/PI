@@ -1,7 +1,3 @@
-// Campo.js
-// Campo de texto com um rótulo (label) em cima.
-// Usado nos formulários de Login e Cadastro.
-
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { cores } from '../theme';
 

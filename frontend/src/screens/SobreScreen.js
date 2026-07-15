@@ -1,18 +1,13 @@
-// SobreScreen.js
-// Tela "Sobre" - explica o que é o projeto, a missão e os ODS relacionados.
-
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { cores } from '../theme';
 
-// Objetivos de Desenvolvimento Sustentável citados no projeto
 const ODS = [
   { numero: '1', texto: 'Erradicação da pobreza' },
   { numero: '3', texto: 'Saúde e bem-estar' },
   { numero: '10', texto: 'Redução das desigualdades' },
 ];
 
-// Os 3 passos de como a plataforma funciona
 const PASSOS = [
   {
     icone: 'person-add',

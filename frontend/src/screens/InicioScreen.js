@@ -1,7 +1,3 @@
-// InicioScreen.js
-// Tela principal (Início). Mostra o "hero" com a apresentação do projeto,
-// botões de ação e as estatísticas (mulheres ajudadas, kits doados, doadoras).
-
 import { View, Text, ScrollView, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Botao from '../components/Botao';
@@ -10,13 +6,11 @@ import { cores } from '../theme';
 export default function InicioScreen({ navigation }) {
   return (
     <ScrollView style={estilos.tela} contentContainerStyle={estilos.conteudo}>
-      {/* Selo do topo */}
       <View style={estilos.selo}>
         <Ionicons name="heart" size={16} color={cores.rosa} />
         <Text style={estilos.seloTexto}>Dignidade Menstrual para Todas</Text>
       </View>
 
-      {/* Imagem grande de destaque (enquadrada num cartão branco) */}
       <View style={estilos.heroCard}>
         <Image
           source={require('../img/mulheres.jpg')}
@@ -32,13 +26,11 @@ export default function InicioScreen({ navigation }) {
         empoderamento feminino.
       </Text>
 
-      {/* Botões de ação (levam para os Pontos de Coleta) */}
       <View style={estilos.botoes}>
         <Botao titulo="Quero Doar" onPress={() => navigation.navigate('Pontos')} estilo={estilos.botao} />
         <Botao titulo="Preciso de Ajuda" tipo="contorno" onPress={() => navigation.navigate('Pontos')} estilo={estilos.botao} />
       </View>
 
-      {/* Estatísticas */}
       <View style={estilos.estatisticas}>
         <Estatistica icone="people" numero="1.200+" rotulo="Mulheres Ajudadas" />
         <Estatistica icone="cube" numero="5.000+" rotulo="Kits Doados" />
@@ -48,7 +40,6 @@ export default function InicioScreen({ navigation }) {
   );
 }
 
-// Componentinho usado 3 vezes acima
 function Estatistica({ icone, numero, rotulo }) {
   return (
     <View style={estilos.itemEstat}>
@@ -87,7 +78,7 @@ const estilos = StyleSheet.create({
   },
   heroImagem: {
     width: '100%',
-    height: 160, // altura fixa do banner (antes saía da largura e ficava ~190px, alto demais)
+    height: 160,
   },
   titulo: { fontSize: 26, fontWeight: 'bold', color: cores.texto, marginBottom: 12, textAlign: 'center' },
   texto: { fontSize: 15, color: cores.textoClaro, lineHeight: 22, marginBottom: 20, textAlign: 'center' },
