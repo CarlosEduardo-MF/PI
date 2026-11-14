@@ -1,4 +1,7 @@
 -- banco connected woman
+-- Este é o ÚNICO arquivo SQL do projeto: cria o banco, as 11 tabelas e os dados de exemplo.
+-- Rode UMA vez, em um banco novo. Para recomeçar do zero, apague o banco antes:
+--   DROP DATABASE connected_woman;   (isso apaga todos os dados)
 
 CREATE DATABASE IF NOT EXISTS connected_woman
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

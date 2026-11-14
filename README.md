@@ -48,8 +48,9 @@ cd PI
 
 Isso cria o banco `connected_woman` com as 11 tabelas e alguns dados de exemplo.
 
-> Já tem o banco de uma versão anterior? Em vez do `database.sql`, rode os arquivos
-> `backend/migracao_*.sql` que ainda não rodou. Eles só adicionam o que é novo, sem apagar dados.
+> Já tem o banco de uma versão anterior? Para atualizar, apague o banco antigo no Workbench
+> (`DROP DATABASE connected_woman;`) e rode o `database.sql` de novo.
+> **Atenção:** isso apaga os dados que estavam no banco.
 
 ### 3. Configurar e ligar o backend (a API)
 ```
@@ -99,7 +100,7 @@ O `database.sql` cria estas contas para você testar (senha **123456**):
 |---|---|
 | "Não foi possível conectar ao servidor" | O backend não está rodando. Rode `npm run dev` na pasta `backend`. |
 | `Access denied for user 'root'` no backend | A senha do MySQL no `backend/.env` está errada. |
-| Erro de tabela ou coluna inexistente | O banco está desatualizado. Rode o `database.sql` (banco novo) ou os `migracao_*.sql`. |
+| Erro de tabela ou coluna inexistente | O banco está desatualizado. Apague o banco e rode o `database.sql` de novo (veja o passo 2). |
 | Mapa em branco | O mapa precisa de internet. |
 | Ponto novo sem pin no mapa | O endereço não foi encontrado. Confira rua, número e cidade. |
 
