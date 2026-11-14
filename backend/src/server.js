@@ -141,7 +141,21 @@ app.post("/cadastro/beneficiaria", async (req, res) => {
   }
 });
 
-app.get("/doadoras", async (req, res) => {
+// Rotas administrativas (listar, editar e apagar cadastros e doações): só a administradora.
+// O pedido precisa trazer o id dela em ?usuario= (ou id_usuario no corpo).
+async function exigirAdmin(req, res, next) {
+  try {
+    const quem = await buscarUsuario(req.query.usuario ?? req.body?.id_usuario);
+    if (!quem || quem.tipo !== "admin") {
+      return res.status(403).json({ ok: false, mensagem: "Só a administradora pode acessar esta área." });
+    }
+    next();
+  } catch (erro) {
+    res.status(500).json({ ok: false, erro: erro.message });
+  }
+}
+
+app.get("/doadoras", exigirAdmin, async (req, res) => {
   try {
     const [linhas] = await pool.query("SELECT * FROM doadora ORDER BY id_doadora DESC");
     res.json(linhas);
@@ -150,7 +164,7 @@ app.get("/doadoras", async (req, res) => {
   }
 });
 
-app.get("/doadoras/:id", async (req, res) => {
+app.get("/doadoras/:id", exigirAdmin, async (req, res) => {
   try {
     const [linhas] = await pool.query("SELECT * FROM doadora WHERE id_doadora = ?", [req.params.id]);
     if (linhas.length === 0) return res.status(404).json({ ok: false, mensagem: "Doadora não encontrada." });
@@ -160,7 +174,7 @@ app.get("/doadoras/:id", async (req, res) => {
   }
 });
 
-app.put("/doadoras/:id", async (req, res) => {
+app.put("/doadoras/:id", exigirAdmin, async (req, res) => {
   try {
     const { nome, email, telefone, cidade, frequencia } = req.body;
     await pool.query(
@@ -173,7 +187,7 @@ app.put("/doadoras/:id", async (req, res) => {
   }
 });
 
-app.delete("/doadoras/:id", async (req, res) => {
+app.delete("/doadoras/:id", exigirAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM doadora WHERE id_doadora = ?", [req.params.id]);
     res.json({ ok: true, mensagem: "Doadora apagada." });
@@ -182,7 +196,7 @@ app.delete("/doadoras/:id", async (req, res) => {
   }
 });
 
-app.get("/beneficiarias", async (req, res) => {
+app.get("/beneficiarias", exigirAdmin, async (req, res) => {
   try {
     const [linhas] = await pool.query("SELECT * FROM beneficiaria ORDER BY id_beneficiaria DESC");
     res.json(linhas);
@@ -191,7 +205,7 @@ app.get("/beneficiarias", async (req, res) => {
   }
 });
 
-app.get("/beneficiarias/:id", async (req, res) => {
+app.get("/beneficiarias/:id", exigirAdmin, async (req, res) => {
   try {
     const [linhas] = await pool.query("SELECT * FROM beneficiaria WHERE id_beneficiaria = ?", [req.params.id]);
     if (linhas.length === 0) return res.status(404).json({ ok: false, mensagem: "Beneficiária não encontrada." });
@@ -201,7 +215,7 @@ app.get("/beneficiarias/:id", async (req, res) => {
   }
 });
 
-app.put("/beneficiarias/:id", async (req, res) => {
+app.put("/beneficiarias/:id", exigirAdmin, async (req, res) => {
   try {
     const { nome, email, telefone, cidade, necessidade } = req.body;
     await pool.query(
@@ -214,7 +228,7 @@ app.put("/beneficiarias/:id", async (req, res) => {
   }
 });
 
-app.delete("/beneficiarias/:id", async (req, res) => {
+app.delete("/beneficiarias/:id", exigirAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM beneficiaria WHERE id_beneficiaria = ?", [req.params.id]);
     res.json({ ok: true, mensagem: "Beneficiária apagada." });
@@ -223,7 +237,7 @@ app.delete("/beneficiarias/:id", async (req, res) => {
   }
 });
 
-app.get("/doacoes", async (req, res) => {
+app.get("/doacoes", exigirAdmin, async (req, res) => {
   try {
     const [linhas] = await pool.query(`
       SELECT d.id_doacao, d.data_doacao, d.status,
@@ -240,7 +254,7 @@ app.get("/doacoes", async (req, res) => {
 });
 
 
-app.get("/doacoes/doadora/:id", async (req, res) => {
+app.get("/doacoes/doadora/:id", exigirAdmin, async (req, res) => {
   try {
     const [linhas] = await pool.query(
       "SELECT * FROM doacao WHERE id_doadora = ? ORDER BY id_doacao DESC",
@@ -252,7 +266,7 @@ app.get("/doacoes/doadora/:id", async (req, res) => {
   }
 });
 
-app.post("/doacoes", async (req, res) => {
+app.post("/doacoes", exigirAdmin, async (req, res) => {
   try {
     const { id_doadora, id_beneficiaria, data_doacao, status } = req.body;
     const [resultado] = await pool.query(
@@ -266,7 +280,7 @@ app.post("/doacoes", async (req, res) => {
 });
 
 
-app.put("/doacoes/:id", async (req, res) => {
+app.put("/doacoes/:id", exigirAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     await pool.query("UPDATE doacao SET status = ? WHERE id_doacao = ?", [status, req.params.id]);
@@ -276,7 +290,7 @@ app.put("/doacoes/:id", async (req, res) => {
   }
 });
 
-app.delete("/doacoes/:id", async (req, res) => {
+app.delete("/doacoes/:id", exigirAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM doacao WHERE id_doacao = ?", [req.params.id]);
     res.json({ ok: true, mensagem: "Doação apagada." });
@@ -467,7 +481,7 @@ app.get("/faqs", async (req, res) => {
   }
 });
 
-app.post("/faqs", async (req, res) => {
+app.post("/faqs", exigirAdmin, async (req, res) => {
   try {
     const { pergunta, resposta } = req.body;
     const [resultado] = await pool.query(
