@@ -617,11 +617,19 @@ app.put("/usuario/:id/senha", async (req, res) => {
 app.delete("/usuario/:id", async (req, res) => {
   try {
     const [usuarios] = await pool.query(
-      "SELECT email, tipo FROM usuario WHERE id_usuario = ?",
+      "SELECT email, tipo, senha FROM usuario WHERE id_usuario = ?",
       [req.params.id]
     );
     if (usuarios.length === 0) {
       return res.status(404).json({ ok: false, mensagem: "Usuária não encontrada." });
+    }
+    // a conta de administradora não é apagada pelo app (senão ninguém aprova os pontos)
+    if (usuarios[0].tipo === "admin") {
+      return res.status(403).json({ ok: false, mensagem: "A conta de administradora não pode ser apagada pelo app." });
+    }
+    // apagar a conta exige a senha dela
+    if (!req.body || !req.body.senha || req.body.senha !== usuarios[0].senha) {
+      return res.status(401).json({ ok: false, mensagem: "Senha incorreta." });
     }
     const { email, tipo } = usuarios[0];
 

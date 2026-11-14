@@ -38,6 +38,7 @@ export default function PerfilScreen({ usuario, onSair, onTrocar, navigation }) 
 
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
+  const [senhaDelete, setSenhaDelete] = useState('');
 
   useEffect(() => {
     listarPerfis(usuario.id_usuario)
@@ -142,9 +143,14 @@ export default function PerfilScreen({ usuario, onSair, onTrocar, navigation }) 
 
   // ---- Deletar conta ----
   async function deletar() {
+    if (!senhaDelete) {
+      avisar('Atenção', 'Digite a sua senha para confirmar.');
+      return;
+    }
     setSalvando(true);
     try {
-      await deletarConta(usuario.id_usuario);
+      await deletarConta(usuario.id_usuario, senhaDelete);
+      setSenhaDelete('');
       setConfirmandoDelete(false);
       avisar('Conta apagada', 'Sua conta foi removida.');
       onSair();
@@ -323,11 +329,21 @@ export default function PerfilScreen({ usuario, onSair, onTrocar, navigation }) 
             <Ionicons name="trash-outline" size={36} color="#B00020" />
             <Text style={estilos.janelaTitulo}>Deletar conta</Text>
             <Text style={estilos.janelaTexto}>
-              Esta ação é permanente. Todos os seus dados serão apagados. Deseja continuar?
+              Esta ação é permanente. Todos os seus dados serão apagados. Para confirmar, digite a sua senha.
             </Text>
 
+            <View style={estilos.form}>
+              <Campo rotulo="Senha" valor={senhaDelete} aoMudar={setSenhaDelete} placeholder="Sua senha" senha />
+            </View>
+
             <View style={estilos.janelaBotoes}>
-              <TouchableOpacity style={[estilos.btn, estilos.btnCancelar]} onPress={() => setConfirmandoDelete(false)}>
+              <TouchableOpacity
+                style={[estilos.btn, estilos.btnCancelar]}
+                onPress={() => {
+                  setSenhaDelete('');
+                  setConfirmandoDelete(false);
+                }}
+              >
                 <Text style={estilos.btnCancelarTexto}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[estilos.btn, estilos.btnDeletar]} onPress={deletar} disabled={salvando}>

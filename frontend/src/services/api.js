@@ -49,8 +49,11 @@ function put(caminho, corpo) {
   return requisicao(caminho, { method: 'PUT', body: JSON.stringify(corpo) });
 }
 
-function del(caminho) {
-  return requisicao(caminho, { method: 'DELETE' });
+function del(caminho, corpo) {
+  return requisicao(caminho, {
+    method: 'DELETE',
+    ...(corpo ? { body: JSON.stringify(corpo) } : {}),
+  });
 }
 
 
@@ -111,8 +114,9 @@ export function alterarSenha(idUsuario, senhaAtual, novaSenha) {
   return put(`/usuario/${idUsuario}/senha`, { senhaAtual, novaSenha });
 }
 
-export function deletarConta(idUsuario) {
-  return del(`/usuario/${idUsuario}`);
+// apagar a conta exige a senha da usuária
+export function deletarConta(idUsuario, senha) {
+  return del(`/usuario/${idUsuario}`, { senha });
 }
 
 export function listarPostsForum(idUsuario) {
