@@ -1,69 +1,94 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  listarPostsForum,
+  criarPostForum,
+  curtirPostForum,
+  comentarPostForum,
+  apagarPostForum,
+} from '../services/api';
+import { avisar } from '../utils/avisar';
 import { cores } from '../theme';
 
-const POSTS_INICIAIS = [
-  {
-    id: 1,
-    autora: 'Mariana',
-    texto: 'Alguém sabe onde consigo absorventes gratuitos em Canoas?',
-    curtidas: 4,
-    comentarios: [
-      { id: 11, autora: 'Juliana', texto: 'Tem um ponto de coleta na Casa da Mulher em Canoas!' },
-    ],
-  },
-  {
-    id: 2,
-    autora: 'Juliana',
-    texto: 'Esse projeto é maravilhoso! Já consegui doar um kit essa semana 💗',
-    curtidas: 12,
-    comentarios: [],
-  },
-  {
-    id: 3,
-    autora: 'Beatriz',
-    texto: 'Dica: o coletor menstrual mudou minha vida, dura anos e economiza muito.',
-    curtidas: 8,
-    comentarios: [
-      { id: 31, autora: 'Anônima', texto: 'Vou experimentar, obrigada pela dica!' },
-    ],
-  },
-  {
-    id: 4,
-    autora: 'Anônima',
-    texto: 'Obrigada por existir essa comunidade. Me sinto acolhida aqui.',
-    curtidas: 15,
-    comentarios: [],
-  },
-];
+const ATUALIZA_A_CADA_MS = 10000;
 
-export default function ForumScreen() {
-  const [posts, setPosts] = useState(POSTS_INICIAIS);
+function formatarData(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const hora = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes} às ${hora}:${min}`;
+}
+
+export default function ForumScreen({ usuario }) {
+  const [posts, setPosts] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+
   const [texto, setTexto] = useState('');
+  const [anonimo, setAnonimo] = useState(false);
+  const [publicando, setPublicando] = useState(false);
 
   const [comentandoId, setComentandoId] = useState(null);
   const [comentarioTexto, setComentarioTexto] = useState('');
 
-  function publicar() {
+  const carregar = useCallback(async () => {
+    try {
+      const dados = await listarPostsForum(usuario.id_usuario);
+      setPosts(dados);
+      setErro('');
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setCarregando(false);
+    }
+  }, [usuario.id_usuario]);
+
+  // carrega ao entrar na aba e atualiza sozinho enquanto ela estiver aberta
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+      const timer = setInterval(carregar, ATUALIZA_A_CADA_MS);
+      return () => clearInterval(timer);
+    }, [carregar])
+  );
+
+  async function publicar() {
     const limpo = texto.trim();
-    if (!limpo) return;
-    const novo = { id: Date.now(), autora: 'Você', texto: limpo, curtidas: 0, comentarios: [] };
-    setPosts([novo, ...posts]);
-    setTexto('');
+    if (!limpo || publicando) return;
+    setPublicando(true);
+    try {
+      await criarPostForum(usuario.id_usuario, limpo, anonimo);
+      setTexto('');
+      await carregar();
+    } catch (e) {
+      avisar('Não foi possível publicar', e.message);
+    } finally {
+      setPublicando(false);
+    }
   }
 
-  function curtir(id) {
-    setPosts(posts.map((p) => (p.id === id ? { ...p, curtidas: p.curtidas + 1 } : p)));
+  async function curtir(id) {
+    try {
+      await curtirPostForum(id, usuario.id_usuario);
+      await carregar();
+    } catch (e) {
+      avisar('Erro', e.message);
+    }
   }
 
   function alternarComentario(id) {
@@ -71,16 +96,25 @@ export default function ForumScreen() {
     setComentarioTexto('');
   }
 
-  function comentar(postId) {
+  async function comentar(postId) {
     const limpo = comentarioTexto.trim();
     if (!limpo) return;
-    const novoComentario = { id: Date.now(), autora: 'Você', texto: limpo };
-    setPosts(
-      posts.map((p) =>
-        p.id === postId ? { ...p, comentarios: [...p.comentarios, novoComentario] } : p
-      )
-    );
-    setComentarioTexto('');
+    try {
+      await comentarPostForum(postId, usuario.id_usuario, limpo, anonimo);
+      setComentarioTexto('');
+      await carregar();
+    } catch (e) {
+      avisar('Não foi possível comentar', e.message);
+    }
+  }
+
+  async function apagar(postId) {
+    try {
+      await apagarPostForum(postId, usuario.id_usuario);
+      await carregar();
+    } catch (e) {
+      avisar('Não foi possível apagar', e.message);
+    }
   }
 
   return (
@@ -101,54 +135,84 @@ export default function ForumScreen() {
             onChangeText={setTexto}
             placeholder="Escreva algo para a comunidade..."
             placeholderTextColor="#B9A6AF"
+            maxLength={1000}
             multiline
           />
-          <TouchableOpacity style={estilos.btnPublicar} onPress={publicar}>
-            <Ionicons name="send" size={16} color={cores.branco} />
-            <Text style={estilos.btnPublicarTexto}>Publicar</Text>
-          </TouchableOpacity>
+          <View style={estilos.rodapeNovo}>
+            <TouchableOpacity style={estilos.anonimoBtn} onPress={() => setAnonimo(!anonimo)}>
+              <Ionicons
+                name={anonimo ? 'checkbox' : 'square-outline'}
+                size={20}
+                color={cores.rosa}
+              />
+              <Text style={estilos.anonimoTexto}>Postar como anônima</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={estilos.btnPublicar} onPress={publicar} disabled={publicando}>
+              <Ionicons name="send" size={16} color={cores.branco} />
+              <Text style={estilos.btnPublicarTexto}>Publicar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
+        {carregando && <ActivityIndicator size="large" color={cores.rosa} style={{ marginTop: 20 }} />}
+        {!carregando && erro !== '' && <Text style={estilos.aviso}>{erro}</Text>}
+        {!carregando && erro === '' && posts.length === 0 && (
+          <Text style={estilos.aviso}>Ainda não há publicações. Seja a primeira a escrever! 💗</Text>
+        )}
+
         {posts.map((post) => (
-          <View key={post.id} style={estilos.card}>
+          <View key={post.id_post} style={estilos.card}>
             <View style={estilos.cardTopo}>
               <View style={estilos.avatar}>
                 <Text style={estilos.avatarLetra}>{post.autora.charAt(0).toUpperCase()}</Text>
               </View>
-              <Text style={estilos.autora}>{post.autora}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={estilos.autora}>{post.autora}</Text>
+                <Text style={estilos.data}>{formatarData(post.criado_em)}</Text>
+              </View>
+              {(post.minha || usuario.tipo === 'admin') && (
+                <TouchableOpacity onPress={() => apagar(post.id_post)}>
+                  <Ionicons name="trash-outline" size={18} color={cores.textoClaro} />
+                </TouchableOpacity>
+              )}
             </View>
 
             <Text style={estilos.texto}>{post.texto}</Text>
 
             <View style={estilos.acoes}>
-              <TouchableOpacity style={estilos.acaoBtn} onPress={() => curtir(post.id)}>
-                <Ionicons name="heart" size={16} color={cores.rosa} />
+              <TouchableOpacity style={estilos.acaoBtn} onPress={() => curtir(post.id_post)}>
+                <Ionicons
+                  name={post.curtiu ? 'heart' : 'heart-outline'}
+                  size={16}
+                  color={cores.rosa}
+                />
                 <Text style={estilos.acaoTexto}>{post.curtidas}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={estilos.acaoBtn} onPress={() => alternarComentario(post.id)}>
+              <TouchableOpacity style={estilos.acaoBtn} onPress={() => alternarComentario(post.id_post)}>
                 <Ionicons name="chatbubble-outline" size={16} color={cores.rosa} />
                 <Text style={estilos.acaoTexto}>{post.comentarios.length}</Text>
               </TouchableOpacity>
             </View>
 
             {post.comentarios.map((c) => (
-              <View key={c.id} style={estilos.comentario}>
+              <View key={c.id_comentario} style={estilos.comentario}>
                 <Text style={estilos.comentarioAutora}>{c.autora}</Text>
                 <Text style={estilos.comentarioTexto}>{c.texto}</Text>
               </View>
             ))}
 
-            {comentandoId === post.id && (
+            {comentandoId === post.id_post && (
               <View style={estilos.caixaComentario}>
                 <TextInput
                   style={estilos.inputComentario}
                   value={comentarioTexto}
                   onChangeText={setComentarioTexto}
-                  placeholder="Escreva um comentário..."
+                  placeholder={anonimo ? 'Comentar como anônima...' : 'Escreva um comentário...'}
                   placeholderTextColor="#B9A6AF"
+                  maxLength={1000}
                 />
-                <TouchableOpacity style={estilos.btnEnviar} onPress={() => comentar(post.id)}>
+                <TouchableOpacity style={estilos.btnEnviar} onPress={() => comentar(post.id_post)}>
                   <Ionicons name="send" size={14} color={cores.branco} />
                 </TouchableOpacity>
               </View>
@@ -165,6 +229,7 @@ const estilos = StyleSheet.create({
   conteudo: { padding: 20 },
   titulo: { fontSize: 24, fontWeight: 'bold', color: cores.texto, marginBottom: 8 },
   intro: { fontSize: 15, color: cores.textoClaro, marginBottom: 20, lineHeight: 22 },
+  aviso: { fontSize: 14, color: cores.textoClaro, textAlign: 'center', marginTop: 16 },
   caixaNovo: {
     backgroundColor: cores.branco,
     borderRadius: 14,
@@ -180,6 +245,9 @@ const estilos = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 10,
   },
+  rodapeNovo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  anonimoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  anonimoTexto: { fontSize: 13, color: cores.textoClaro },
   btnPublicar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -188,7 +256,6 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.rosa,
     borderRadius: 10,
     paddingVertical: 10,
-    alignSelf: 'flex-end',
     paddingHorizontal: 20,
   },
   btnPublicarTexto: { color: cores.branco, fontWeight: 'bold' },
@@ -211,6 +278,7 @@ const estilos = StyleSheet.create({
   },
   avatarLetra: { color: cores.branco, fontWeight: 'bold', fontSize: 16 },
   autora: { fontSize: 15, fontWeight: 'bold', color: cores.texto },
+  data: { fontSize: 11, color: cores.textoClaro },
   texto: { fontSize: 14, color: cores.textoClaro, lineHeight: 21, marginBottom: 12 },
   acoes: { flexDirection: 'row', gap: 20 },
   acaoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },

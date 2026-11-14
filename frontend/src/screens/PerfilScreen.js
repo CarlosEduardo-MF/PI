@@ -4,19 +4,24 @@ import { Ionicons } from '@expo/vector-icons';
 import Campo from '../components/Campo';
 import Botao from '../components/Botao';
 import { avisar } from '../utils/avisar';
-import { buscarPerfil, atualizarPerfil, alterarSenha, deletarConta } from '../services/api';
+import { buscarPerfil, atualizarPerfil, alterarSenha, deletarConta, listarPerfis } from '../services/api';
 import { cores } from '../theme';
 
 function rotuloTipo(tipo) {
   if (tipo === 'doadora') return 'Doadora';
   if (tipo === 'beneficiaria') return 'Beneficiária';
   if (tipo === 'admin') return 'Administradora';
+  if (tipo === 'instituicao') return 'Instituição';
   return 'Usuária';
 }
 
-export default function PerfilScreen({ usuario, onSair }) {
+export default function PerfilScreen({ usuario, onSair, onTrocar, navigation }) {
+  // outro perfil da mesma pessoa (mesmo e-mail): doadora <-> beneficiária
+  const [outroPerfil, setOutroPerfil] = useState(null);
   const ehDoadora = usuario?.tipo === 'doadora';
-  const temCadastro = usuario?.tipo === 'doadora' || usuario?.tipo === 'beneficiaria';
+  const ehInstituicao = usuario?.tipo === 'instituicao';
+  const temCadastro =
+    usuario?.tipo === 'doadora' || usuario?.tipo === 'beneficiaria' || ehInstituicao;
 
   const [perfil, setPerfil] = useState(null);
 
@@ -35,13 +40,27 @@ export default function PerfilScreen({ usuario, onSair }) {
   const [novaSenha, setNovaSenha] = useState('');
 
   useEffect(() => {
+    listarPerfis(usuario.id_usuario)
+      .then((lista) =>
+        setOutroPerfil(
+          lista.find(
+            (p) =>
+              p.id_usuario !== usuario.id_usuario &&
+              (p.tipo === 'doadora' || p.tipo === 'beneficiaria')
+          ) || null
+        )
+      )
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!temCadastro) return;
     buscarPerfil(usuario.tipo, usuario.email)
       .then(setPerfil)
       .catch(() => {});
   }, []);
 
-  const nomePerfil = perfil?.nome_doadora || perfil?.nome_beneficiaria;
+  const nomePerfil = perfil?.nome_doadora || perfil?.nome_beneficiaria || perfil?.nome_instituicao;
 
   // ---- Editar perfil ----
   function abrirEditar() {
@@ -53,9 +72,9 @@ export default function PerfilScreen({ usuario, onSair }) {
       avisar('Editar perfil', 'Não encontramos seus dados de cadastro para editar.');
       return;
     }
-    setNome(perfil.nome_doadora || perfil.nome_beneficiaria || '');
-    setTelefone(perfil.telefone_doadora || perfil.telefone_beneficiaria || '');
-    setCidade(perfil.cidade_doadora || perfil.cidade_beneficiaria || '');
+    setNome(perfil.nome_doadora || perfil.nome_beneficiaria || perfil.nome_instituicao || '');
+    setTelefone(perfil.telefone_doadora || perfil.telefone_beneficiaria || perfil.telefone_instituicao || '');
+    setCidade(perfil.cidade_doadora || perfil.cidade_beneficiaria || perfil.cidade_instituicao || '');
     setExtra(perfil.frequencia_doacao_doadora || perfil.tipo_necessidade_beneficiaria || '');
     setEditando(true);
   }
@@ -67,14 +86,18 @@ export default function PerfilScreen({ usuario, onSair }) {
     }
     setSalvando(true);
     try {
-      const dados = ehDoadora
+      const dados = ehInstituicao
+        ? { nome, telefone, cidade }
+        : ehDoadora
         ? { nome, telefone, cidade, frequencia: extra }
         : { nome, telefone, cidade, necessidade: extra };
       await atualizarPerfil(usuario.tipo, usuario.email, dados);
 
       setPerfil((p) => ({
         ...p,
-        ...(ehDoadora
+        ...(ehInstituicao
+          ? { nome_instituicao: nome, telefone_instituicao: telefone, cidade_instituicao: cidade }
+          : ehDoadora
           ? {
               nome_doadora: nome,
               telefone_doadora: telefone,
@@ -134,6 +157,40 @@ export default function PerfilScreen({ usuario, onSair }) {
   const opcoes = [
     { icone: 'person-outline', titulo: 'Editar perfil', descricao: 'Atualize seu nome e dados', onPress: abrirEditar },
     { icone: 'lock-closed-outline', titulo: 'Alterar senha', descricao: 'Mude sua senha de acesso', onPress: () => setAlterandoSenha(true) },
+    ...(usuario?.tipo === 'doadora' || usuario?.tipo === 'beneficiaria'
+      ? [
+          {
+            icone: 'gift-outline',
+            titulo: usuario.tipo === 'doadora' ? 'Doações que entreguei' : 'Doações que recebi',
+            descricao: 'Veja o histórico e o status de cada entrega',
+            onPress: () => navigation.navigate('HistoricoEntregas'),
+          },
+        ]
+      : []),
+    ...(outroPerfil
+      ? [
+          {
+            icone: 'swap-horizontal-outline',
+            titulo: `Trocar para ${outroPerfil.tipo === 'doadora' ? 'doadora' : 'beneficiária'}`,
+            descricao: 'Use o app com o outro perfil deste e-mail',
+            onPress: () => onTrocar(outroPerfil),
+          },
+        ]
+      : usuario?.tipo === 'doadora' || usuario?.tipo === 'beneficiaria'
+      ? [
+          {
+            icone: 'person-add-outline',
+            titulo: `Usar também como ${usuario.tipo === 'doadora' ? 'beneficiária' : 'doadora'}`,
+            descricao: 'Crie o outro perfil com o mesmo e-mail',
+            onPress: () =>
+              avisar(
+                'Criar o outro perfil',
+                'Saia da conta, toque em "Cadastre-se", escolha o outro perfil e preencha com o ' +
+                  `mesmo e-mail (${usuario.email}) e a mesma senha. Depois, ao entrar, você escolhe com qual perfil quer usar o app.`
+              ),
+          },
+        ]
+      : []),
     { icone: 'notifications-outline', titulo: 'Notificações', descricao: 'Gerencie seus avisos', onPress: () => avisar('Notificações', 'Funcionalidade em breve!') },
     { icone: 'shield-checkmark-outline', titulo: 'Privacidade e dados', descricao: 'Controle seus dados (LGPD)', onPress: () => avisar('Privacidade e dados', 'Funcionalidade em breve!') },
     { icone: 'help-circle-outline', titulo: 'Ajuda e suporte', descricao: 'Tire suas dúvidas', onPress: () => avisar('Ajuda e suporte', 'Funcionalidade em breve!') },
@@ -181,12 +238,14 @@ export default function PerfilScreen({ usuario, onSair }) {
               <Campo rotulo="Nome completo" valor={nome} aoMudar={setNome} placeholder="Seu nome" />
               <Campo rotulo="Telefone" valor={telefone} aoMudar={setTelefone} placeholder="(51) 99999-9999" tipoTeclado="phone-pad" />
               <Campo rotulo="Cidade" valor={cidade} aoMudar={setCidade} placeholder="Sua cidade" />
-              <Campo
-                rotulo={ehDoadora ? 'Frequência de doação' : 'Tipo de necessidade'}
-                valor={extra}
-                aoMudar={setExtra}
-                placeholder={ehDoadora ? 'Ex.: Mensalmente' : 'Ex.: Absorventes'}
-              />
+              {!ehInstituicao && (
+                <Campo
+                  rotulo={ehDoadora ? 'Frequência de doação' : 'Tipo de necessidade'}
+                  valor={extra}
+                  aoMudar={setExtra}
+                  placeholder={ehDoadora ? 'Ex.: Mensalmente' : 'Ex.: Absorventes'}
+                />
+              )}
             </View>
 
             <View style={estilos.janelaBotoes}>

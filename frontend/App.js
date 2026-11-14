@@ -17,6 +17,11 @@ import PontosColetaScreen from './src/screens/PontosColetaScreen';
 import EducacaoScreen from './src/screens/EducacaoScreen';
 import ForumScreen from './src/screens/ForumScreen';
 import PerfilScreen from './src/screens/PerfilScreen';
+import CadastroPontoScreen from './src/screens/CadastroPontoScreen';
+import AprovacaoPontosScreen from './src/screens/AprovacaoPontosScreen';
+import HistoricoEntregasScreen from './src/screens/HistoricoEntregasScreen';
+import ChatListaScreen from './src/screens/ChatListaScreen';
+import ChatConversaScreen from './src/screens/ChatConversaScreen';
 
 const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
@@ -53,7 +58,7 @@ function BotaoPerfil({ onPress }) {
 }
 
 // abas do app
-function Abas() {
+function Abas({ usuario }) {
   return (
     <Tab.Navigator
       screenOptions={({ route, navigation }) => ({
@@ -71,6 +76,7 @@ function Abas() {
             Sobre: 'information-circle',
             Pontos: 'location',
             Educação: 'book',
+            Chat: 'chatbubble-ellipses',
             Fórum: 'chatbubbles',
           };
           return <Ionicons name={icones[route.name]} size={size} color={color} />;
@@ -79,18 +85,73 @@ function Abas() {
     >
       <Tab.Screen name="Início" component={InicioScreen} />
       <Tab.Screen name="Sobre" component={SobreScreen} />
-      <Tab.Screen name="Pontos" component={PontosColetaScreen} options={{ title: 'Pontos de Coleta' }} />
+      <Tab.Screen name="Pontos" options={{ title: 'Pontos de Coleta' }}>
+        {(props) => <PontosColetaScreen {...props} usuario={usuario} />}
+      </Tab.Screen>
       <Tab.Screen name="Educação" component={EducacaoScreen} />
-      <Tab.Screen name="Fórum" component={ForumScreen} />
+      {(usuario.tipo === 'doadora' || usuario.tipo === 'beneficiaria') && (
+        <Tab.Screen name="Chat">
+          {(props) => <ChatListaScreen {...props} usuario={usuario} />}
+        </Tab.Screen>
+      )}
+      <Tab.Screen name="Fórum">
+        {(props) => <ForumScreen {...props} usuario={usuario} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
 // abas + tela de Perfil por cima
-function FluxoApp({ usuario, onSair }) {
+function FluxoApp({ usuario, onSair, onTrocar }) {
   return (
     <AppStack.Navigator>
-      <AppStack.Screen name="Abas" component={Abas} options={{ headerShown: false }} />
+      <AppStack.Screen name="Abas" options={{ headerShown: false }}>
+        {() => <Abas usuario={usuario} />}
+      </AppStack.Screen>
+      <AppStack.Screen
+        name="CadastroPonto"
+        options={{
+          title: 'Novo ponto de coleta',
+          headerStyle: { backgroundColor: cores.rosa },
+          headerTintColor: cores.branco,
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      >
+        {(props) => <CadastroPontoScreen {...props} usuario={usuario} />}
+      </AppStack.Screen>
+      <AppStack.Screen
+        name="HistoricoEntregas"
+        options={{
+          title: 'Minhas doações',
+          headerStyle: { backgroundColor: cores.rosa },
+          headerTintColor: cores.branco,
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      >
+        {(props) => <HistoricoEntregasScreen {...props} usuario={usuario} />}
+      </AppStack.Screen>
+      <AppStack.Screen
+        name="AprovacaoPontos"
+        options={{
+          title: 'Aprovar pontos',
+          headerStyle: { backgroundColor: cores.rosa },
+          headerTintColor: cores.branco,
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      >
+        {(props) => <AprovacaoPontosScreen {...props} usuario={usuario} />}
+      </AppStack.Screen>
+      <AppStack.Screen
+        name="Conversa"
+        options={({ route }) => ({
+          title: route.params?.nome || 'Conversa',
+          headerStyle: { backgroundColor: cores.rosa },
+          headerTintColor: cores.branco,
+          headerTitleStyle: { fontWeight: 'bold' },
+        })}
+      >
+        {(props) => <ChatConversaScreen {...props} usuario={usuario} />}
+      </AppStack.Screen>
       <AppStack.Screen
         name="Perfil"
         options={{
@@ -100,7 +161,7 @@ function FluxoApp({ usuario, onSair }) {
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       >
-        {(props) => <PerfilScreen {...props} usuario={usuario} onSair={onSair} />}
+        {(props) => <PerfilScreen {...props} usuario={usuario} onSair={onSair} onTrocar={onTrocar} />}
       </AppStack.Screen>
     </AppStack.Navigator>
   );
@@ -113,7 +174,13 @@ export default function App() {
     <NavigationContainer>
       <StatusBar style="light" />
       {usuario ? (
-        <FluxoApp usuario={usuario} onSair={() => setUsuario(null)} />
+        // key: ao trocar de perfil (doadora/beneficiária), o app recomeça nas abas já com o novo perfil
+        <FluxoApp
+          key={usuario.id_usuario}
+          usuario={usuario}
+          onSair={() => setUsuario(null)}
+          onTrocar={setUsuario}
+        />
       ) : (
         <FluxoLogin onEntrar={setUsuario} />
       )}

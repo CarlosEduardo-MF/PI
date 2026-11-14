@@ -70,6 +70,31 @@ export function listarPontos() {
   return get('/pontos');
 }
 
+export function cadastrarInstituicao(dados) {
+  return post('/cadastro/instituicao', dados);
+}
+
+// dados precisa incluir id_usuario (a instituição ou admin logada)
+export function cadastrarPonto(dados) {
+  return post('/pontos', dados);
+}
+
+export function listarMeusPontos(idUsuario) {
+  return get(`/pontos/meus?usuario=${idUsuario}`);
+}
+
+export function listarPontosPendentes(idUsuario) {
+  return get(`/pontos/pendentes?usuario=${idUsuario}`);
+}
+
+export function decidirPonto(idPonto, idUsuario, status) {
+  return put(`/pontos/${idPonto}/status`, { id_usuario: idUsuario, status });
+}
+
+export function apagarPonto(idPonto, idUsuario) {
+  return del(`/pontos/${idPonto}?usuario=${idUsuario}`);
+}
+
 export function listarFaqs() {
   return get('/faqs');
 }
@@ -88,4 +113,69 @@ export function alterarSenha(idUsuario, senhaAtual, novaSenha) {
 
 export function deletarConta(idUsuario) {
   return del(`/usuario/${idUsuario}`);
+}
+
+export function listarPostsForum(idUsuario) {
+  return get(`/forum/posts?usuario=${idUsuario}`);
+}
+
+export function criarPostForum(idUsuario, texto, anonimo) {
+  return post('/forum/posts', { id_usuario: idUsuario, texto, anonimo });
+}
+
+export function curtirPostForum(idPost, idUsuario) {
+  return post(`/forum/posts/${idPost}/curtir`, { id_usuario: idUsuario });
+}
+
+export function comentarPostForum(idPost, idUsuario, texto, anonimo) {
+  return post(`/forum/posts/${idPost}/comentarios`, { id_usuario: idUsuario, texto, anonimo });
+}
+
+export function apagarPostForum(idPost, idUsuario) {
+  return del(`/forum/posts/${idPost}?usuario=${idUsuario}`);
+}
+
+export function listarContatosChat(idUsuario) {
+  return get(`/chat/contatos/${idUsuario}`);
+}
+
+export function listarMensagens(idUsuario, idOutro) {
+  return get(`/chat/mensagens/${idUsuario}/${idOutro}`);
+}
+
+export function enviarMensagem(idRemetente, idDestinatario, texto) {
+  return post('/chat/mensagens', {
+    id_remetente: idRemetente,
+    id_destinatario: idDestinatario,
+    texto,
+  });
+}
+
+export function listarPerfis(idUsuario) {
+  return get(`/usuario/${idUsuario}/perfis`);
+}
+
+export function registrarEntrega(idRemetente, idDestinatario, item, quantidade) {
+  return post('/entregas', {
+    id_remetente: idRemetente,
+    id_destinatario: idDestinatario,
+    item,
+    quantidade,
+  });
+}
+
+export function listarEntregasEntre(idUsuario, idOutro) {
+  return get(`/entregas/entre/${idUsuario}/${idOutro}?usuario=${idUsuario}`);
+}
+
+export function responderEntrega(idEntrega, idUsuario, resposta) {
+  return put(`/entregas/${idEntrega}/responder`, { id_usuario: idUsuario, resposta });
+}
+
+export function cancelarEntrega(idEntrega, idUsuario) {
+  return put(`/entregas/${idEntrega}/cancelar`, { id_usuario: idUsuario });
+}
+
+export function listarMinhasEntregas(idUsuario) {
+  return get(`/entregas/minhas?usuario=${idUsuario}`);
 }

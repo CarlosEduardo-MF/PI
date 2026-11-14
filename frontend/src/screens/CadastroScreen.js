@@ -11,7 +11,7 @@ import Campo from "../components/Campo";
 import Seletor from "../components/Seletor";
 import Botao from "../components/Botao";
 import { avisar } from "../utils/avisar";
-import { cadastrarDoadora, cadastrarBeneficiaria, login } from "../services/api";
+import { cadastrarDoadora, cadastrarBeneficiaria, cadastrarInstituicao, login } from "../services/api";
 import { cores } from "../theme";
 
 const CIDADES = [
@@ -51,10 +51,11 @@ export default function CadastroScreen({ onEntrar }) {
   const [salvando, setSalvando] = useState(false);
 
   const ehDoadora = perfil === "doadora";
+  const ehInstituicao = perfil === "instituicao";
 
   async function cadastrar() {
     if (!nome) {
-      avisar("Atenção", "Por favor, preencha o seu nome completo.");
+      avisar("Atenção", ehInstituicao ? "Preencha o nome da instituição." : "Por favor, preencha o seu nome completo.");
       return;
     }
     if (!email || !senha) {
@@ -64,15 +65,19 @@ export default function CadastroScreen({ onEntrar }) {
 
     setSalvando(true);
     try {
-      if (ehDoadora) {
+      if (ehInstituicao) {
+        await cadastrarInstituicao({ nome, email, telefone, cidade, senha });
+      } else if (ehDoadora) {
         await cadastrarDoadora({ nome, email, telefone, cidade, frequencia, senha });
       } else {
         await cadastrarBeneficiaria({ nome, email, telefone, cidade, necessidade, senha });
       }
 
       const resposta = await login(email, senha);
+      // entra no perfil que acabou de criar (o e-mail pode ter outro perfil mais antigo)
+      const criado = (resposta.perfis || []).find((p) => p.tipo === perfil) || resposta.usuario;
       avisar("Cadastro concluído!", `Seja bem-vinda, ${nome}!`);
-      onEntrar(resposta.usuario);
+      onEntrar(criado);
     } catch (erro) {
       avisar("Não foi possível cadastrar", erro.message);
     } finally {
@@ -98,34 +103,54 @@ export default function CadastroScreen({ onEntrar }) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[estilos.aba, !ehDoadora && estilos.abaAtiva]}
+          style={[estilos.aba, perfil === "beneficiaria" && estilos.abaAtiva]}
           onPress={() => setPerfil("beneficiaria")}
         >
           <Ionicons
             name="hand-left"
             size={16}
-            color={!ehDoadora ? cores.branco : cores.rosa}
+            color={perfil === "beneficiaria" ? cores.branco : cores.rosa}
           />
-          <Text style={[estilos.abaTexto, !ehDoadora && estilos.abaTextoAtivo]}>
+          <Text style={[estilos.abaTexto, perfil === "beneficiaria" && estilos.abaTextoAtivo]}>
             Preciso de ajuda
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[estilos.aba, ehInstituicao && estilos.abaAtiva]}
+          onPress={() => setPerfil("instituicao")}
+        >
+          <Ionicons
+            name="business"
+            size={16}
+            color={ehInstituicao ? cores.branco : cores.rosa}
+          />
+          <Text style={[estilos.abaTexto, ehInstituicao && estilos.abaTextoAtivo]}>
+            Sou instituição
           </Text>
         </TouchableOpacity>
       </View>
 
       <Text style={estilos.titulo}>
-        {ehDoadora ? "Cadastro de Doadora" : "Cadastro de Beneficiária"}
+        {ehInstituicao
+          ? "Cadastro de Instituição"
+          : ehDoadora
+          ? "Cadastro de Doadora"
+          : "Cadastro de Beneficiária"}
       </Text>
       <Text style={estilos.descricao}>
-        {ehDoadora
+        {ehInstituicao
+          ? "Cadastre a sua instituição para indicar pontos de coleta. Cada ponto novo passa por uma aprovação da nossa equipe antes de aparecer no mapa."
+          : ehDoadora
           ? "Sua doação pode transformar a vida de uma mulher. Preencha os dados abaixo para começar a fazer a diferença."
           : "Você não está sozinha. Preencha os dados abaixo e conectaremos você com uma doadora na sua região."}
       </Text>
 
       <Campo
-        rotulo="Nome completo"
+        rotulo={ehInstituicao ? "Nome da instituição" : "Nome completo"}
         valor={nome}
         aoMudar={setNome}
-        placeholder="Seu nome"
+        placeholder={ehInstituicao ? "Ex.: Casa da Mulher" : "Seu nome"}
       />
       <Campo
         rotulo="E-mail"
@@ -156,7 +181,7 @@ export default function CadastroScreen({ onEntrar }) {
         placeholder="Selecione sua cidade"
       />
 
-      {ehDoadora ? (
+      {ehInstituicao ? null : ehDoadora ? (
         <Seletor
           rotulo="Frequência de doação"
           valor={frequencia}
@@ -205,7 +230,7 @@ const estilos = StyleSheet.create({
     borderRadius: 26,
   },
   abaAtiva: { backgroundColor: cores.rosa },
-  abaTexto: { color: cores.rosa, fontWeight: "600", fontSize: 13 },
+  abaTexto: { color: cores.rosa, fontWeight: "600", fontSize: 12 },
   abaTextoAtivo: { color: cores.branco },
   titulo: {
     fontSize: 20,
