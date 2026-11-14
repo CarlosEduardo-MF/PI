@@ -516,9 +516,18 @@ app.get("/relatorios", async (req, res) => {
 
 
 // perfil
+// o perfil só pode ser lido e editado pela própria dona (o app envia o id dela)
+async function ehDonoDoPerfil(idUsuario, tipo, email) {
+  const quem = await buscarUsuario(idUsuario);
+  return !!quem && quem.tipo === tipo && String(quem.email).toLowerCase() === String(email).toLowerCase();
+}
+
 app.get("/perfil/:tipo/:email", async (req, res) => {
   try {
     const { tipo, email } = req.params;
+    if (!(await ehDonoDoPerfil(req.query.usuario, tipo, email))) {
+      return res.status(403).json({ ok: false, mensagem: "Você só pode ver o seu próprio perfil." });
+    }
     if (tipo === "doadora") {
       const [linhas] = await pool.query(
         "SELECT * FROM doadora WHERE email_doadora = ?",
@@ -549,6 +558,9 @@ app.get("/perfil/:tipo/:email", async (req, res) => {
 app.put("/perfil/:tipo/:email", async (req, res) => {
   try {
     const { tipo, email } = req.params;
+    if (!(await ehDonoDoPerfil(req.body.id_usuario, tipo, email))) {
+      return res.status(403).json({ ok: false, mensagem: "Você só pode editar o seu próprio perfil." });
+    }
     const { nome, telefone, cidade, frequencia, necessidade } = req.body;
 
     if (tipo === "doadora") {
@@ -656,6 +668,9 @@ const NOME_CADASTRO = `COALESCE(
 app.get("/chat/contatos/:idUsuario", async (req, res) => {
   try {
     const id = Number(req.params.idUsuario);
+    if (Number(req.query.usuario) !== id) {
+      return res.status(403).json({ ok: false, mensagem: "Você só pode ver os seus próprios contatos." });
+    }
     const [[eu]] = await pool.query("SELECT tipo, email FROM usuario WHERE id_usuario = ?", [id]);
     if (!eu) return res.status(404).json({ ok: false, mensagem: "Usuária não encontrada." });
     if (eu.tipo !== "doadora" && eu.tipo !== "beneficiaria") return res.json([]);
@@ -686,6 +701,10 @@ app.get("/chat/contatos/:idUsuario", async (req, res) => {
 app.get("/chat/mensagens/:idA/:idB", async (req, res) => {
   try {
     const { idA, idB } = req.params;
+    const eu = Number(req.query.usuario);
+    if (eu !== Number(idA) && eu !== Number(idB)) {
+      return res.status(403).json({ ok: false, mensagem: "Você não participa desta conversa." });
+    }
     const [linhas] = await pool.query(
       `SELECT id_mensagem, id_remetente, id_destinatario, texto, enviada_em
        FROM mensagem
@@ -706,6 +725,12 @@ app.post("/chat/mensagens", async (req, res) => {
     const limpo = (texto || "").trim();
     if (!id_remetente || !id_destinatario || !limpo) {
       return res.status(400).json({ ok: false, mensagem: "Mensagem inválida." });
+    }
+    const rem = await buscarUsuario(id_remetente);
+    const dest = await buscarUsuario(id_destinatario);
+    const par = ["doadora", "beneficiaria"];
+    if (!rem || !dest || !par.includes(rem.tipo) || !par.includes(dest.tipo) || rem.tipo === dest.tipo || rem.email === dest.email) {
+      return res.status(403).json({ ok: false, mensagem: "O chat é só entre uma doadora e uma beneficiária." });
     }
     const [resultado] = await pool.query(
       "INSERT INTO mensagem (id_remetente, id_destinatario, texto) VALUES (?, ?, ?)",

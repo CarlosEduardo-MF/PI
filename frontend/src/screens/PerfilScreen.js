@@ -55,7 +55,7 @@ export default function PerfilScreen({ usuario, onSair, onTrocar, navigation }) 
 
   useEffect(() => {
     if (!temCadastro) return;
-    buscarPerfil(usuario.tipo, usuario.email)
+    buscarPerfil(usuario.tipo, usuario.email, usuario.id_usuario)
       .then(setPerfil)
       .catch(() => {});
   }, []);
@@ -91,7 +91,7 @@ export default function PerfilScreen({ usuario, onSair, onTrocar, navigation }) 
         : ehDoadora
         ? { nome, telefone, cidade, frequencia: extra }
         : { nome, telefone, cidade, necessidade: extra };
-      await atualizarPerfil(usuario.tipo, usuario.email, dados);
+      await atualizarPerfil(usuario.tipo, usuario.email, dados, usuario.id_usuario);
 
       setPerfil((p) => ({
         ...p,

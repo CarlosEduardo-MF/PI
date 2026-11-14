@@ -99,12 +99,12 @@ export function listarFaqs() {
   return get('/faqs');
 }
 
-export function buscarPerfil(tipo, email) {
-  return get(`/perfil/${tipo}/${encodeURIComponent(email)}`);
+export function buscarPerfil(tipo, email, idUsuario) {
+  return get(`/perfil/${tipo}/${encodeURIComponent(email)}?usuario=${idUsuario}`);
 }
 
-export function atualizarPerfil(tipo, email, dados) {
-  return put(`/perfil/${tipo}/${encodeURIComponent(email)}`, dados);
+export function atualizarPerfil(tipo, email, dados, idUsuario) {
+  return put(`/perfil/${tipo}/${encodeURIComponent(email)}`, { ...dados, id_usuario: idUsuario });
 }
 
 export function alterarSenha(idUsuario, senhaAtual, novaSenha) {
@@ -136,11 +136,11 @@ export function apagarPostForum(idPost, idUsuario) {
 }
 
 export function listarContatosChat(idUsuario) {
-  return get(`/chat/contatos/${idUsuario}`);
+  return get(`/chat/contatos/${idUsuario}?usuario=${idUsuario}`);
 }
 
 export function listarMensagens(idUsuario, idOutro) {
-  return get(`/chat/mensagens/${idUsuario}/${idOutro}`);
+  return get(`/chat/mensagens/${idUsuario}/${idOutro}?usuario=${idUsuario}`);
 }
 
 export function enviarMensagem(idRemetente, idDestinatario, texto) {
